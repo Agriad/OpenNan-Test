@@ -21,7 +21,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var wifiAwareSupport = false
 
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -69,9 +68,10 @@ class MainActivity : AppCompatActivity() {
                 || super.onSupportNavigateUp()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun checkWifiAwareSupport(context: Context) {
         wifiAwareSupport =
             context.packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE)
     }
+
+
 }
