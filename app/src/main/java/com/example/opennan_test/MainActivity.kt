@@ -17,6 +17,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.TextView
 import com.example.opennan_test.databinding.ActivityMainBinding
+import org.w3c.dom.Text
 import java.security.Provider
 
 class MainActivity : AppCompatActivity() {
@@ -42,6 +43,7 @@ class MainActivity : AppCompatActivity() {
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show()
             changeWifiAwareSupportIndicator()
+            changeWifiAwareAvailabilityIndicator()
         }
 
         var wifiAwareManager =
@@ -62,6 +64,7 @@ class MainActivity : AppCompatActivity() {
         this.registerReceiver(wifiAwareBroadcastReceiver, filter)
         checkWifiAwareSupport(this)
         changeWifiAwareSupportIndicator()
+        changeWifiAwareAvailabilityIndicator()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -97,6 +100,15 @@ class MainActivity : AppCompatActivity() {
             wifiAwareSupportText.text = "This device supports wifi aware"
         } else {
             wifiAwareSupportText.text = "This device does not support wifi aware"
+        }
+    }
+
+    private fun changeWifiAwareAvailabilityIndicator() {
+        val wifiAwareAvailabilitytext: TextView = findViewById(R.id.wifi_aware_availability)
+        if (wifiAwareAvailable) {
+            wifiAwareAvailabilitytext.text = "Wifi Aware is available"
+        } else {
+            wifiAwareAvailabilitytext.text = "Wifi Aware is not available"
         }
     }
 }
