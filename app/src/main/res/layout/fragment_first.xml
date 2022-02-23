@@ -7,7 +7,7 @@
     tools:context=".FirstFragment">
 
     <TextView
-        android:id="@+id/textview_first"
+        android:id="@+id/wifi_aware_support"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/hello_first_fragment"
@@ -15,6 +15,18 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/wifi_aware_availability"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="45dp"
+        android:text="@string/hello_first_fragment"
+        app:layout_constraintBottom_toTopOf="@+id/button_first"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/wifi_aware_support"
+        app:layout_constraintVertical_bias="0.0" />
 
     <Button
         android:id="@+id/button_first"
@@ -24,5 +36,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/textview_first" />
+        app:layout_constraintTop_toBottomOf="@id/wifi_aware_support" />
 </androidx.constraintlayout.widget.ConstraintLayout>

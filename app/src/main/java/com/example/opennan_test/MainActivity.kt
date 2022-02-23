@@ -1,8 +1,11 @@
 package com.example.opennan_test
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.os.Build
+import android.net.wifi.aware.WifiAwareManager
 import android.os.Bundle
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
@@ -12,14 +15,16 @@ import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import android.view.Menu
 import android.view.MenuItem
-import androidx.annotation.RequiresApi
+import android.widget.TextView
 import com.example.opennan_test.databinding.ActivityMainBinding
+import java.security.Provider
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private var wifiAwareSupport = false
+    private var wifiAwareAvailable = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,15 +40,28 @@ class MainActivity : AppCompatActivity() {
 
         binding.fab.setOnClickListener { view ->
             Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
+                .setAction("Action", null).show()
+            changeWifiAwareSupportIndicator()
         }
 
+        var wifiAwareManager =
+            this.getSystemService(Context.WIFI_AWARE_SERVICE) as WifiAwareManager?
+        var filter = IntentFilter(WifiAwareManager.ACTION_WIFI_AWARE_STATE_CHANGED)
+
+        val wifiAwareBroadcastReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                // discard current sessions
+                if (wifiAwareManager?.isAvailable == true) {
+                    wifiAwareAvailable = true
+                } else {
+                    wifiAwareAvailable = false
+                }
+            }
+        }
+
+        this.registerReceiver(wifiAwareBroadcastReceiver, filter)
         checkWifiAwareSupport(this)
-
-        if (wifiAwareSupport) {
-            Snackbar.make(binding.root, "Wifi Aware is supported", Snackbar.LENGTH_SHORT)
-                .show()
-        }
+        changeWifiAwareSupportIndicator()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -73,5 +91,12 @@ class MainActivity : AppCompatActivity() {
             context.packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_AWARE)
     }
 
-
+    private fun changeWifiAwareSupportIndicator() {
+        val wifiAwareSupportText: TextView = findViewById(R.id.wifi_aware_support)
+        if (wifiAwareSupport) {
+            wifiAwareSupportText.text = "This device supports wifi aware"
+        } else {
+            wifiAwareSupportText.text = "This device does not support wifi aware"
+        }
+    }
 }
