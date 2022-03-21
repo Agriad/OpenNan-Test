@@ -1,13 +1,14 @@
 package com.example.opennan_test
 
-import android.R.attr.button
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.wifi.aware.AttachCallback
 import android.net.wifi.aware.WifiAwareManager
 import android.os.Bundle
+import android.os.Handler
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Button
@@ -28,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var wifiAwareSupport = false
     private var wifiAwareAvailable = -1
+    private var wifiAwareSession = -1;
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,51 +50,33 @@ class MainActivity : AppCompatActivity() {
             changeWifiAwareAvailabilityIndicator()
         }
 
+        checkWifiAwareSupport(this)
+        val wifiAwareManager = startWifiAwareBroadcastReceiver(this)
+        changeWifiAwareSupportIndicator()
+        changeWifiAwareAvailabilityIndicator()
+
         val buttonPublish = findViewById<Button>(R.id.publish)
 
         buttonPublish.setOnClickListener {
-            Toast.makeText(this, "Publishing", Toast.LENGTH_SHORT).show()
+            if (wifiAwareSession != 1) {
+                wifiAwareSession = 1
+                val attachCallback = getWifiAwareSession(wifiAwareManager)
+                Toast.makeText(this, "Publishing", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Already in a session", Toast.LENGTH_SHORT).show()
+            }
         }
 
         val buttonSubscribe = findViewById<Button>(R.id.subscribe)
 
         buttonSubscribe.setOnClickListener {
-            Toast.makeText(this, "Subscribing", Toast.LENGTH_SHORT).show()
-        }
-
-        var wifiAwareManager =
-            this.getSystemService(Context.WIFI_AWARE_SERVICE) as WifiAwareManager?
-        var filter = IntentFilter(WifiAwareManager.ACTION_WIFI_AWARE_STATE_CHANGED)
-
-        val wifiAwareBroadcastReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                // discard current sessions
-                if (wifiAwareManager?.isAvailable == true) {
-                    wifiAwareAvailable = 1
-                    changeWifiAwareAvailabilityIndicator()
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Wifi Aware available",
-                        Toast.LENGTH_SHORT
-                    )
-                        .show()
-                } else {
-                    wifiAwareAvailable = 0
-                    changeWifiAwareAvailabilityIndicator()
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Wifi Aware not available",
-                        Toast.LENGTH_SHORT
-                    )
-                        .show()
-                }
+            if (wifiAwareSession != 1) {
+                wifiAwareSession = 1
+                val attachCallback = getWifiAwareSession(wifiAwareManager)
+            } else {
+                Toast.makeText(this, "Already in a session", Toast.LENGTH_SHORT).show()
             }
         }
-
-        this.registerReceiver(wifiAwareBroadcastReceiver, filter)
-        checkWifiAwareSupport(this)
-        changeWifiAwareSupportIndicator()
-        changeWifiAwareAvailabilityIndicator()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -140,5 +124,49 @@ class MainActivity : AppCompatActivity() {
         } else {
             wifiAwareAvailabilitytext.text = "Wifi Aware is not available"
         }
+    }
+
+    private fun startWifiAwareBroadcastReceiver(context: Context): WifiAwareManager {
+        val wifiAwareManager =
+            context.getSystemService(Context.WIFI_AWARE_SERVICE) as WifiAwareManager
+        val filter = IntentFilter(WifiAwareManager.ACTION_WIFI_AWARE_STATE_CHANGED)
+
+        val wifiAwareBroadcastReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                // discard current sessions
+                if (wifiAwareManager.isAvailable) {
+                    wifiAwareAvailable = 1
+                    changeWifiAwareAvailabilityIndicator()
+                    Toast.makeText(
+                        context,
+                        "Wifi Aware available",
+                        Toast.LENGTH_SHORT
+                    )
+                        .show()
+                } else {
+                    wifiAwareAvailable = 0
+                    changeWifiAwareAvailabilityIndicator()
+                    Toast.makeText(
+                        context,
+                        "Wifi Aware not available",
+                        Toast.LENGTH_SHORT
+                    )
+                        .show()
+                }
+            }
+        }
+
+        context.registerReceiver(wifiAwareBroadcastReceiver, filter)
+
+        return wifiAwareManager
+    }
+
+    private fun getWifiAwareSession(wifiAwareManager: WifiAwareManager): AttachCallback {
+        val attachCallback = AttachCallback()
+        val handler = Handler()
+
+        wifiAwareManager.attach(attachCallback, handler)
+
+        return attachCallback
     }
 }
