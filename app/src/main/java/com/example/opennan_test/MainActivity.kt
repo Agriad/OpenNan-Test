@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.wifi.aware.AttachCallback
 import android.net.wifi.aware.WifiAwareManager
+import android.net.wifi.aware.WifiAwareSession
 import android.os.Bundle
 import android.os.Handler
 import android.view.Menu
@@ -60,7 +61,7 @@ class MainActivity : AppCompatActivity() {
         buttonPublish.setOnClickListener {
             if (wifiAwareSession != 1) {
                 wifiAwareSession = 1
-                val attachCallback = getWifiAwareSession(wifiAwareManager)
+                getWifiAwareSession(wifiAwareManager, this)
                 Toast.makeText(this, "Publishing", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "Already in a session", Toast.LENGTH_SHORT).show()
@@ -72,9 +73,20 @@ class MainActivity : AppCompatActivity() {
         buttonSubscribe.setOnClickListener {
             if (wifiAwareSession != 1) {
                 wifiAwareSession = 1
-                val attachCallback = getWifiAwareSession(wifiAwareManager)
+                getWifiAwareSession(wifiAwareManager, this)
             } else {
                 Toast.makeText(this, "Already in a session", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        val buttonStop = findViewById<Button>(R.id.stop)
+
+        buttonStop.setOnClickListener {
+            if (wifiAwareSession == 1) {
+                Toast.makeText(this, "Stopping session", Toast.LENGTH_SHORT).show()
+                wifiAwareSession = 0
+            } else {
+                Toast.makeText(this, "Not in session", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -161,12 +173,31 @@ class MainActivity : AppCompatActivity() {
         return wifiAwareManager
     }
 
-    private fun getWifiAwareSession(wifiAwareManager: WifiAwareManager): AttachCallback {
-        val attachCallback = AttachCallback()
+    private fun getWifiAwareSession(wifiAwareManager: WifiAwareManager, context: Context) {
+//        val attachCallback = AttachCallback()
+
+        val attachCallback = object : AttachCallback() {
+            override fun onAttached(session: WifiAwareSession?) {
+                Toast.makeText(
+                    context,
+                    "Wifi Aware session attach success",
+                    Toast.LENGTH_SHORT
+                )
+                    .show()
+            }
+
+            override fun onAttachFailed() {
+                Toast.makeText(
+                    context,
+                    "Wifi Aware session failed to attach",
+                    Toast.LENGTH_SHORT
+                )
+                    .show()
+            }
+        }
+
         val handler = Handler()
 
         wifiAwareManager.attach(attachCallback, handler)
-
-        return attachCallback
     }
 }
