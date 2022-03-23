@@ -5,11 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.net.wifi.aware.AttachCallback
-import android.net.wifi.aware.WifiAwareManager
-import android.net.wifi.aware.WifiAwareSession
+import android.net.wifi.aware.*
 import android.os.Bundle
 import android.os.Handler
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Button
@@ -30,7 +29,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var wifiAwareSupport = false
     private var wifiAwareAvailable = -1
-    private var wifiAwareSession = -1;
+    private var wifiAwareSessionFlag = false
+    private var wifiAwareSessionServiceFlag = false
+    private lateinit var wifiAwareSession: WifiAwareSession
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,6 +50,7 @@ class MainActivity : AppCompatActivity() {
                 .setAction("Action", null).show()
             changeWifiAwareSupportIndicator()
             changeWifiAwareAvailabilityIndicator()
+            Log.d("wifi aware session flag", wifiAwareSessionFlag.toString())
         }
 
         checkWifiAwareSupport(this)
@@ -56,13 +58,12 @@ class MainActivity : AppCompatActivity() {
         changeWifiAwareSupportIndicator()
         changeWifiAwareAvailabilityIndicator()
 
-        val buttonPublish = findViewById<Button>(R.id.publish)
+        val buttonStart = findViewById<Button>(R.id.start)
 
-        buttonPublish.setOnClickListener {
-            if (wifiAwareSession != 1) {
-                wifiAwareSession = 1
+        buttonStart.setOnClickListener {
+            if (!wifiAwareSessionFlag && wifiAwareAvailable == 1) {
+                wifiAwareSessionFlag = true
                 getWifiAwareSession(wifiAwareManager, this)
-                Toast.makeText(this, "Publishing", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "Already in a session", Toast.LENGTH_SHORT).show()
             }
@@ -71,9 +72,71 @@ class MainActivity : AppCompatActivity() {
         val buttonSubscribe = findViewById<Button>(R.id.subscribe)
 
         buttonSubscribe.setOnClickListener {
-            if (wifiAwareSession != 1) {
-                wifiAwareSession = 1
-                getWifiAwareSession(wifiAwareManager, this)
+            if (wifiAwareSessionFlag) {
+                wifiAwareSessionServiceFlag = true
+
+                val config: SubscribeConfig = SubscribeConfig.Builder()
+                    .setServiceName("General")
+                    .build()
+                wifiAwareSession.subscribe(config, object : DiscoverySessionCallback() {
+                    lateinit var subscribeDiscoverySession: SubscribeDiscoverySession
+
+                    override fun onSubscribeStarted(session: SubscribeDiscoverySession) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Subscribed to a service",
+                            Toast.LENGTH_SHORT).show()
+                        subscribeDiscoverySession = session
+                    }
+
+                    override fun onServiceDiscovered(
+                        peerHandle: PeerHandle,
+                        serviceSpecificInfo: ByteArray,
+                        matchFilter: List<ByteArray>
+                    ) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Service Discovered",
+                            Toast.LENGTH_SHORT).show()
+
+                        subscribeDiscoverySession.sendMessage(
+                            peerHandle, 1, "Hello".toByteArray())
+                    }
+                }, null)
+
+                Toast.makeText(this, "Subscribing", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Already in a session", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        val buttonPublish = findViewById<Button>(R.id.publish)
+
+        buttonPublish.setOnClickListener {
+            if (wifiAwareSessionFlag) {
+                wifiAwareSessionServiceFlag = true
+
+                val config: PublishConfig = PublishConfig.Builder()
+                    .setServiceName("androidservice")
+                    .build()
+                wifiAwareSession.publish(config, object : DiscoverySessionCallback() {
+
+                    override fun onPublishStarted(session: PublishDiscoverySession) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Publishing service",
+                            Toast.LENGTH_SHORT).show()
+                    }
+
+                    override fun onMessageReceived(peerHandle: PeerHandle, message: ByteArray) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Message received: " + message,
+                            Toast.LENGTH_SHORT).show()
+                    }
+                }, Handler())
+
+                Toast.makeText(this, "Publishing", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "Already in a session", Toast.LENGTH_SHORT).show()
             }
@@ -82,11 +145,12 @@ class MainActivity : AppCompatActivity() {
         val buttonStop = findViewById<Button>(R.id.stop)
 
         buttonStop.setOnClickListener {
-            if (wifiAwareSession == 1) {
+            if (wifiAwareSessionFlag) {
+                wifiAwareSessionFlag = false
+
                 Toast.makeText(this, "Stopping session", Toast.LENGTH_SHORT).show()
-                wifiAwareSession = 0
             } else {
-                Toast.makeText(this, "Not in session", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Not in a session", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -174,8 +238,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getWifiAwareSession(wifiAwareManager: WifiAwareManager, context: Context) {
-//        val attachCallback = AttachCallback()
-
         val attachCallback = object : AttachCallback() {
             override fun onAttached(session: WifiAwareSession?) {
                 Toast.makeText(
@@ -184,6 +246,8 @@ class MainActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 )
                     .show()
+
+                wifiAwareSession = session as WifiAwareSession
             }
 
             override fun onAttachFailed() {
